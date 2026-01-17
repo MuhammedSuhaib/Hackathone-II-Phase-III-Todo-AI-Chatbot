@@ -32,6 +32,7 @@ class TaskService:
                 title=task_data.title,
                 description=task_data.description,
                 completed=task_data.completed,
+                priority=task_data.priority,
                 user_id=task_data.user_id
             )
 
@@ -40,12 +41,13 @@ class TaskService:
             db.commit()
             db.refresh(db_task)
 
-            # Return the created task
-            return TaskRead.from_orm(db_task) if hasattr(TaskRead, 'from_orm') else TaskRead(
+            # Return the created task - extract values to avoid serialization issues
+            return TaskRead(
                 id=db_task.id,
                 title=db_task.title,
                 description=db_task.description,
                 completed=db_task.completed,
+                priority=db_task.priority,
                 user_id=db_task.user_id,
                 created_at=db_task.created_at,
                 updated_at=db_task.updated_at
@@ -92,12 +94,13 @@ class TaskService:
                     detail="Task not found or does not belong to user"
                 )
 
-            # Return the task data
-            return TaskRead.from_orm(db_task) if hasattr(TaskRead, 'from_orm') else TaskRead(
+            # Return the task data - extract values to avoid serialization issues
+            return TaskRead(
                 id=db_task.id,
                 title=db_task.title,
                 description=db_task.description,
                 completed=db_task.completed,
+                priority=db_task.priority,
                 user_id=db_task.user_id,
                 created_at=db_task.created_at,
                 updated_at=db_task.updated_at
@@ -131,18 +134,22 @@ class TaskService:
                 Task.user_id == user_id
             ).offset(skip).limit(limit).all()
 
-            # Convert to TaskRead schema
+            # Convert to TaskRead schema - make sure to extract values before session closes
             tasks = []
             for db_task in db_tasks:
-                task = TaskRead.from_orm(db_task) if hasattr(TaskRead, 'from_orm') else TaskRead(
-                    id=db_task.id,
-                    title=db_task.title,
-                    description=db_task.description,
-                    completed=db_task.completed,
-                    user_id=db_task.user_id,
-                    created_at=db_task.created_at,
-                    updated_at=db_task.updated_at
-                )
+                # Extract all values from the ORM object before session might close
+                task_dict = {
+                    'id': db_task.id,
+                    'title': db_task.title,
+                    'description': db_task.description,
+                    'completed': db_task.completed,
+                    'priority': db_task.priority,
+                    'user_id': db_task.user_id,
+                    'created_at': db_task.created_at,
+                    'updated_at': db_task.updated_at
+                }
+
+                task = TaskRead(**task_dict)
                 tasks.append(task)
 
             return tasks
@@ -183,7 +190,7 @@ class TaskService:
                 )
 
             # Update fields if they are provided in the update data
-            update_data = task_update.dict(exclude_unset=True)
+            update_data = task_update.model_dump(exclude_unset=True) if hasattr(task_update, 'model_dump') else task_update.dict(exclude_unset=True)
             for field, value in update_data.items():
                 setattr(db_task, field, value)
 
@@ -191,12 +198,13 @@ class TaskService:
             db.commit()
             db.refresh(db_task)
 
-            # Return the updated task
-            return TaskRead.from_orm(db_task) if hasattr(TaskRead, 'from_orm') else TaskRead(
+            # Return the updated task - extract values to avoid serialization issues
+            return TaskRead(
                 id=db_task.id,
                 title=db_task.title,
                 description=db_task.description,
                 completed=db_task.completed,
+                priority=db_task.priority,
                 user_id=db_task.user_id,
                 created_at=db_task.created_at,
                 updated_at=db_task.updated_at
@@ -294,18 +302,20 @@ class TaskService:
             db_task.completed = not db_task.completed
 
             # Update the updated_at timestamp (handled by the Base model's __setattr__)
+            from datetime import datetime
             db_task.updated_at = datetime.utcnow()
 
             # Commit the changes
             db.commit()
             db.refresh(db_task)
 
-            # Return the updated task
-            return TaskRead.from_orm(db_task) if hasattr(TaskRead, 'from_orm') else TaskRead(
+            # Return the updated task - extract values to avoid serialization issues
+            return TaskRead(
                 id=db_task.id,
                 title=db_task.title,
                 description=db_task.description,
                 completed=db_task.completed,
+                priority=db_task.priority,
                 user_id=db_task.user_id,
                 created_at=db_task.created_at,
                 updated_at=db_task.updated_at

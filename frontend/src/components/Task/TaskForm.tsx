@@ -14,15 +14,20 @@ interface TaskFormProps {
 }
 
 const TaskForm: React.FC<TaskFormProps> = ({
-  initialData = { title: '', description: '', priority: 'medium' },
+  initialData,
   onSubmit,
   onCancel,
   submitText = 'Add Task'
 }) => {
-  const [formData, setFormData] = useState<TaskFormData>({
-    title: initialData?.title || '',
-    description: initialData?.description || '',
-    priority: initialData?.priority || 'medium'
+  const getDefaultInitialData = (): TaskFormData => ({
+    title: '',
+    description: '',
+    priority: 'medium',
+    ...initialData
+  });
+
+  const [formData, setFormData] = useState<TaskFormData>(() => {
+    return getDefaultInitialData();
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,7 +39,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       priority: initialData?.priority || 'medium'
     });
     setErrors({});
-  }, [initialData]);
+  }, [initialData?.title, initialData?.description, initialData?.priority]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -77,22 +82,27 @@ const TaskForm: React.FC<TaskFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
+        <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
+          Task Title *
+        </label>
         <Input
           id="title"
           name="title"
-          label="Task Title *"
+          label=""
           value={formData.title}
           onChange={handleChange}
           required
           error={errors.title}
           placeholder="Enter task title"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
+        {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
           Description
         </label>
         <textarea
@@ -100,15 +110,15 @@ const TaskForm: React.FC<TaskFormProps> = ({
           name="description"
           value={formData.description}
           onChange={handleChange}
-          rows={3}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          rows={4}
+          className="block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           placeholder="Enter task description (optional)"
         />
         {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
       </div>
 
       <div>
-        <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="priority" className="block text-sm font-semibold text-gray-700 mb-2">
           Priority *
         </label>
         <select
@@ -116,23 +126,36 @@ const TaskForm: React.FC<TaskFormProps> = ({
           name="priority"
           value={formData.priority}
           onChange={handleChange}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          className="block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           required
         >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
+          <option value="low">Low Priority</option>
+          <option value="medium">Medium Priority</option>
+          <option value="high">High Priority</option>
         </select>
         {errors.priority && <p className="mt-1 text-sm text-red-600">{errors.priority}</p>}
       </div>
 
-      <div className="flex space-x-3 pt-2">
+      <div className="flex space-x-4 pt-2">
         <Button
           type="submit"
           isLoading={isSubmitting}
           disabled={isSubmitting}
+          className="flex-1 py-3 px-4 text-base font-medium"
         >
-          {submitText}
+          <span className="flex items-center justify-center">
+            {isSubmitting ? (
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
+            {submitText}
+          </span>
         </Button>
 
         {onCancel && (
@@ -141,8 +164,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
             variant="secondary"
             onClick={onCancel}
             disabled={isSubmitting}
+            className="py-3 px-4 text-base font-medium"
           >
-            Cancel
+            <span className="flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Cancel
+            </span>
           </Button>
         )}
       </div>

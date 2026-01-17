@@ -12,6 +12,14 @@ const useTasks = () => {
   // Fetch tasks
   const fetchTasks = async () => {
     try {
+      // Check if user is authenticated before fetching tasks
+      const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+      if (!userId) {
+        setError('User not authenticated. Please log in to access tasks.');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       const response = await apiClient.getAllTasks();
@@ -19,8 +27,8 @@ const useTasks = () => {
       if (response.success) {
         setTasks(response.data || []);
       } else {
-        setError(response.error?.message || 'Failed to fetch tasks');
-        showError(response.error?.message || 'Failed to fetch tasks');
+        setError(response.message || 'Failed to fetch tasks');
+        showError(response.message || 'Failed to fetch tasks');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -32,6 +40,13 @@ const useTasks = () => {
 
   // Create a new task
   const createTask = async (taskData: TaskFormData) => {
+    // Check if user is authenticated before creating a task
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+    if (!userId) {
+      showError('User not authenticated. Please log in to create tasks.');
+      return null;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.createTask(taskData);
@@ -41,7 +56,7 @@ const useTasks = () => {
         success('Task created successfully');
         return response.data;
       } else {
-        showError(response.error?.message || 'Failed to create task');
+        showError(response.message || 'Failed to create task');
         return null;
       }
     } catch (err) {
@@ -54,6 +69,13 @@ const useTasks = () => {
 
   // Update a task
   const updateTask = async (id: string, taskData: Partial<Task>) => {
+    // Check if user is authenticated before updating a task
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+    if (!userId) {
+      showError('User not authenticated. Please log in to update tasks.');
+      return null;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.updateTask(id, taskData);
@@ -63,7 +85,7 @@ const useTasks = () => {
         success('Task updated successfully');
         return response.data;
       } else {
-        showError(response.error?.message || 'Failed to update task');
+        showError(response.message || 'Failed to update task');
         return null;
       }
     } catch (err) {
@@ -76,6 +98,13 @@ const useTasks = () => {
 
   // Toggle task completion
   const toggleTaskCompletion = async (id: string) => {
+    // Check if user is authenticated before toggling task completion
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+    if (!userId) {
+      showError('User not authenticated. Please log in to update tasks.');
+      return null;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.toggleTaskCompletion(id);
@@ -87,7 +116,7 @@ const useTasks = () => {
         success(response.data.completed ? 'Task marked as complete' : 'Task marked as incomplete');
         return response.data;
       } else {
-        showError(response.error?.message || 'Failed to toggle task completion');
+        showError(response.message || 'Failed to toggle task completion');
         return null;
       }
     } catch (err) {
@@ -100,6 +129,13 @@ const useTasks = () => {
 
   // Delete a task
   const deleteTask = async (id: string) => {
+    // Check if user is authenticated before deleting a task
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+    if (!userId) {
+      showError('User not authenticated. Please log in to delete tasks.');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await apiClient.deleteTask(id);
@@ -108,7 +144,7 @@ const useTasks = () => {
         setTasks(prev => prev.filter(task => task.id !== id));
         success('Task deleted successfully');
       } else {
-        showError(response.error?.message || 'Failed to delete task');
+        showError(response.message || 'Failed to delete task');
       }
     } catch (err) {
       showError('Failed to delete task');

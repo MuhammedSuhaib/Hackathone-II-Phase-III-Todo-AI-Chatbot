@@ -43,7 +43,7 @@ def verify_token(token: str) -> dict:
             )
 
         # Check if token is expired
-        if datetime.fromtimestamp(exp) < datetime.utcnow():
+        if datetime.fromtimestamp(exp) < datetime.now():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired"
@@ -122,9 +122,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     # Set expiration
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire.timestamp()})
 

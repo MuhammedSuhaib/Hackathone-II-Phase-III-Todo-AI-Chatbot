@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Backdrop */}
@@ -61,6 +62,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       </div>
     </div>
   );
+
+  // Render the modal to the document body to ensure it overlays everything
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null;
 };
 
 export default Modal;

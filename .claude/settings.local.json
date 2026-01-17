@@ -46,7 +46,19 @@
       "Bash(powershell.exe -Command \"Test-Path ''C:\\\\Users\\\\Hp\\\\Desktop\\\\Hackathon II Phase II Todo Full-Stack Web Application\\\\frontend\\\\src\\\\components\\\\Layout\\\\Header.tsx''\")",
       "Bash(powershell.exe -Command \"Test-Path ''C:\\\\Users\\\\Hp\\\\Desktop\\\\Hackathon II Phase II Todo Full-Stack Web Application\\\\frontend\\\\src\\\\components\\\\Layout\\\\DashboardLayout.tsx''\")",
       "Bash(xargs ls -la)",
-      "Bash(ls -la *.json)"
+      "Bash(ls -la *.json)",
+      "Bash(dir backend)",
+      "Bash(curl -s -X GET http://localhost:8000/api/1bf1b729-aad0-4ed1-a2e5-b02cab6b15c5/ -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxYmYxYjcyOS1hYWQwLTRlZDEtYTJlNS1iMDJjYWI2YjE1YzUiLCJleHAiOjE3NjgwNTAyMDMuNzYxNzExfQ.J-BbkDiubvlFZYieSHvtPeA_PCtVWAgY1VMcnnelRDU\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Hp\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--Hackathon-II-Phase-II-Todo-Full-Stack-Web-Application\\\\tasks\\\\bc2d377.output''\")",
+      "Bash(powershell -Command \"Get-Content ''C:\\\\Users\\\\Hp\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--Hackathon-II-Phase-II-Todo-Full-Stack-Web-Application\\\\tasks\\\\b567ac4.output''\")",
+      "Bash(dir frontendsrcapplogin)",
+      "Bash(dir frontendsrcappsignin)",
+      "Bash(dir)",
+      "Bash(dir frontend)",
+      "Bash(python final_test.py)",
+      "Bash(powershell Remove-Item backend/test_db_connection.py, backend/debug_api.py, backend/fix_db_schema.py, backend/final_test.py, backend/simple_test.py)",
+      "Bash(powershell Get-Content \"C:\\\\Users\\\\Hp\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--Hackathon-II-Phase-II-Todo-Full-Stack-Web-Application\\\\tasks\\\\bd8389e.output\")",
+      "Bash(powershell Remove-Item -Path \"E:\\\\Hackathon II Phase II Todo Full-Stack Web Application\\\\start_servers.bat\")"
     ]
   }
 }

@@ -1,8 +1,8 @@
 import { User, LoginCredentials, RegisterCredentials } from '@/types/User';
-import { signIn, signOut, signUp, getSession } from '@better-auth/client';
 
 class AuthService {
   private user: User | null = null;
+  private apiUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
   constructor() {
     // Check if user is already logged in from previous session
@@ -12,36 +12,56 @@ class AuthService {
     }
   }
 
-  async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
-    try {
-      // Call Better Auth login API
-      const response = await signIn.email({
-        email: credentials.email,
-        password: credentials.password,
-        redirect: false,
-      });
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${this.apiUrl}/api/v1${endpoint}`;
 
-      if (response?.error) {
-        return {
-          success: false,
-          message: response.error.message || 'Login failed'
-        };
+    const defaultHeaders = {
+      'Content-Type': 'application/json',
+    };
+
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+    };
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `API request failed with status ${response.status}`);
       }
 
-      // Get the current user after successful login
-      const currentUser = await getSession();
+      return await response.json();
+    } catch (error) {
+      console.error('Auth API request error:', error);
+      throw error;
+    }
+  }
 
-      if (currentUser) {
-        const betterUser = currentUser.user;
+  async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
+    try {
+      // Call backend login API
+      const response = await this.request('/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password,
+        }),
+      });
 
-        // Create our User object
+      if (response.token) {
+        // Create our User object from the response
         const user: User = {
-          id: betterUser.id,
-          email: betterUser.email,
-          name: betterUser.name || betterUser.email.split('@')[0],
+          id: response.id,
+          email: response.email,
+          name: response.name,
           isLoggedIn: true,
-          jwtToken: currentUser.accessToken || '',
-          refreshToken: currentUser.refreshToken || ''
+          jwtToken: response.token,
+          refreshToken: ''
         };
 
         // Store user and token in localStorage
@@ -49,6 +69,14 @@ class AuthService {
           localStorage.setItem('user', JSON.stringify(user));
           localStorage.setItem('user_id', user.id); // Store user ID for API calls
           localStorage.setItem('jwt_token', user.jwtToken || '');
+
+          // Dispatch storage event to notify other tabs/components
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'user',
+            newValue: JSON.stringify(user),
+            oldValue: null,
+            url: window.location.href
+          }));
         }
 
         this.user = user;
@@ -61,48 +89,40 @@ class AuthService {
       } else {
         return {
           success: false,
-          message: 'Login failed - unable to retrieve user session'
+          message: 'Login failed - no token received'
         };
       }
     } catch (error) {
       console.error('Login error:', error);
       return {
         success: false,
-        message: 'Login failed. Please check your credentials.'
+        message: error instanceof Error ? error.message : 'Login failed. Please check your credentials.'
       };
     }
   }
 
   async register(credentials: RegisterCredentials): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      // Call Better Auth register API
-      const response = await signUp.email({
-        email: credentials.email,
-        password: credentials.password,
-        name: credentials.name,
+      // Call backend register API
+      const response = await this.request('/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: credentials.email,
+          name: credentials.name,
+          password: credentials.password,
+          confirm_password: credentials.password, // Assuming same password for confirmation
+        }),
       });
 
-      if (response?.error) {
-        return {
-          success: false,
-          message: response.error.message || 'Registration failed'
-        };
-      }
-
-      // Get the current user after successful registration
-      const currentUser = await getSession();
-
-      if (currentUser) {
-        const betterUser = currentUser.user;
-
-        // Create our User object
+      if (response.token) {
+        // Create our User object from the response
         const user: User = {
-          id: betterUser.id,
-          email: betterUser.email,
-          name: betterUser.name || betterUser.email.split('@')[0],
+          id: response.id,
+          email: response.email,
+          name: response.name,
           isLoggedIn: true,
-          jwtToken: currentUser.accessToken || '',
-          refreshToken: currentUser.refreshToken || ''
+          jwtToken: response.token,
+          refreshToken: ''
         };
 
         // Store user and token in localStorage
@@ -110,6 +130,14 @@ class AuthService {
           localStorage.setItem('user', JSON.stringify(user));
           localStorage.setItem('user_id', user.id); // Store user ID for API calls
           localStorage.setItem('jwt_token', user.jwtToken || '');
+
+          // Dispatch storage event to notify other tabs/components
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'user',
+            newValue: JSON.stringify(user),
+            oldValue: null,
+            url: window.location.href
+          }));
         }
 
         this.user = user;
@@ -122,28 +150,38 @@ class AuthService {
       } else {
         return {
           success: false,
-          message: 'Registration failed - unable to retrieve user session'
+          message: 'Registration failed - no token received'
         };
       }
     } catch (error) {
       console.error('Registration error:', error);
       return {
         success: false,
-        message: 'Registration failed. Please try again.'
+        message: error instanceof Error ? error.message : 'Registration failed. Please try again.'
       };
     }
   }
 
   async logout(): Promise<{ success: boolean; message?: string }> {
     try {
-      // Call Better Auth logout API
-      await signOut({ redirect: false });
-
       // Clear user data from localStorage
+      let oldUser = null;
       if (typeof window !== 'undefined') {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          oldUser = storedUser;
+        }
         localStorage.removeItem('user');
         localStorage.removeItem('user_id');
         localStorage.removeItem('jwt_token');
+
+        // Dispatch storage event to notify other tabs/components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'user',
+          newValue: null,
+          oldValue: oldUser || null,
+          url: window.location.href
+        }));
       }
 
       this.user = null;
@@ -172,26 +210,13 @@ class AuthService {
   // Method to refresh token if needed
   async refreshToken(): Promise<boolean> {
     try {
-      const refreshedSession = await getSession();
-      if (refreshedSession) {
-        const betterUser = refreshedSession.user;
-        const user: User = {
-          id: betterUser.id,
-          email: betterUser.email,
-          name: betterUser.name || betterUser.email.split('@')[0],
-          isLoggedIn: true,
-          jwtToken: refreshedSession.accessToken || '',
-          refreshToken: refreshedSession.refreshToken || ''
-        };
+      // For this implementation, we'll check if the token exists and is valid
+      // In a real implementation, you might have a refresh endpoint
+      const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
 
-        // Update stored user
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('user_id', user.id);
-          localStorage.setItem('jwt_token', user.jwtToken || '');
-        }
-
-        this.user = user;
+      if (token) {
+        // We could make a request to a refresh endpoint here
+        // For now, just return true if token exists
         return true;
       }
       return false;

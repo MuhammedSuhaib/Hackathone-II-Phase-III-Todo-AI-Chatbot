@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import Generator
@@ -92,12 +92,12 @@ def get_user_tasks_query(user_id: str = Depends(get_current_user_id)):
     return _get_filtered_query
 
 
-def validate_user_id_in_path(path_user_id: str, current_user_id: str = Depends(get_current_user_id)):
+def validate_user_id_in_path(request: Request, current_user_id: str = Depends(get_current_user_id)):
     """
     Validate that the user_id in the URL path matches the user_id in the JWT token.
 
     Args:
-        path_user_id (str): User ID from the URL path
+        request (Request): FastAPI request object to extract path parameters
         current_user_id (str): User ID from JWT token (automatically extracted)
 
     Returns:
@@ -106,6 +106,15 @@ def validate_user_id_in_path(path_user_id: str, current_user_id: str = Depends(g
     Raises:
         HTTPException: If user IDs don't match
     """
+    # Extract user_id from path
+    path_user_id = request.path_params.get('user_id')
+
+    if not path_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User ID not found in path"
+        )
+
     if path_user_id != current_user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

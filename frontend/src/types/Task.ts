@@ -3,7 +3,7 @@ export interface Task {
   title: string;
   description?: string;
   completed: boolean;
-  priority: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high';
   createdAt: string;
   updatedAt: string;
 }
@@ -12,6 +12,7 @@ export interface TaskFormData {
   title: string;
   description?: string;
   priority: 'low' | 'medium' | 'high';
+  completed?: boolean;
 }
 
 export interface FilterState {

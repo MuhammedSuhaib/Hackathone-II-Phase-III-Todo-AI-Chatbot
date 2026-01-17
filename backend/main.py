@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api.v1.endpoints import tasks
+from src.api.v1.endpoints.auth import router as auth_router
 from src.config.settings import settings
+from src.database.connection import create_tables
+
+# Create tables on startup
+create_tables()
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -25,7 +30,9 @@ app.add_middleware(
 )
 
 # Include API routes
-app.include_router(tasks.router, prefix="/api/{user_id}", tags=["tasks"])
+app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
+# Include authentication routes
+app.include_router(auth_router, prefix="/api/v1", tags=["authentication"])
 
 @app.get("/")
 def read_root():

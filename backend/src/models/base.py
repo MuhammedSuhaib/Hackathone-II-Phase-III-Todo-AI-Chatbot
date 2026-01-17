@@ -13,6 +13,11 @@ class Base(SQLModel):
 
     def __setattr__(self, name, value):
         """Override to automatically update updated_at field when any attribute changes."""
+        # Allow SQLAlchemy to handle its internal attributes first
+        if name.startswith('_sa_'):
+            super().__setattr__(name, value)
+            return
+
         if name != "updated_at":
             super().__setattr__("updated_at", datetime.utcnow())
         super().__setattr__(name, value)

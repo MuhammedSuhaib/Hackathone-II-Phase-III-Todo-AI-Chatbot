@@ -28,15 +28,28 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setUser(currentUser);
     setLoading(false);
 
-    // Set up event listeners or other initialization if needed
+    // Listen for storage events to update user state when login/logout happens in other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        const updatedUser = e.newValue ? JSON.parse(e.newValue) : null;
+        setUser(updatedUser);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
       const result = await authService.login({ email, password });
-      if (result.success && result.user) {
-        setUser(result.user);
-      }
+      // Always fetch the latest user from authService after login
+      const updatedUser = authService.getCurrentUser();
+      setUser(updatedUser);
       return result;
     } catch (error) {
       console.error('Login error:', error);
@@ -47,9 +60,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       const result = await authService.logout();
-      if (result.success) {
-        setUser(null);
-      }
+      // Always fetch the latest user from authService after logout
+      const updatedUser = authService.getCurrentUser();
+      setUser(updatedUser);
       return result;
     } catch (error) {
       console.error('Logout error:', error);
@@ -60,9 +73,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const register = async (name: string, email: string, password: string) => {
     try {
       const result = await authService.register({ name, email, password });
-      if (result.success && result.user) {
-        setUser(result.user);
-      }
+      // Always fetch the latest user from authService after registration
+      const updatedUser = authService.getCurrentUser();
+      setUser(updatedUser);
       return result;
     } catch (error) {
       console.error('Registration error:', error);

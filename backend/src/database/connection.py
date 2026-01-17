@@ -4,6 +4,10 @@ from ..config.settings import settings
 from sqlmodel import create_engine as sqlmodel_create_engine
 import logging
 
+# Import models to ensure they are registered with SQLModel's metadata
+from ..models import task  # noqa: F401
+from ..models import user  # noqa: F401
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -16,21 +20,30 @@ def create_db_engine():
     Returns:
         Engine: SQLAlchemy engine instance configured for the database
     """
-    # Use SQLModel's create_engine which is compatible with both SQLAlchemy and SQLModel
-    engine = sqlmodel_create_engine(
-        settings.NEON_DB_URL,
-        # Connection pool settings optimized for serverless environments
-        poolclass=QueuePool,
-        pool_size=5,  # Number of connections to maintain in the pool
-        max_overflow=10,  # Additional connections beyond pool_size
-        pool_pre_ping=True,  # Verify connections before use
-        pool_recycle=300,  # Recycle connections after 5 minutes
-        echo=False,  # Set to True for SQL query logging (useful for debugging)
-        connect_args={
-            # Additional connection arguments specific to PostgreSQL
-            "connect_timeout": 10,  # Timeout for establishing connection
-        }
-    )
+    # Check if we're using SQLite (for local development) or PostgreSQL
+    if settings.NEON_DB_URL.startswith("sqlite"):
+        # SQLite doesn't support connect_timeout or connection pooling
+        engine = sqlmodel_create_engine(
+            settings.NEON_DB_URL,
+            echo=False,  # Set to True for SQL query logging (useful for debugging)
+        )
+    else:
+        # Use SQLModel's create_engine which is compatible with both SQLAlchemy and SQLModel
+        # with connection pooling for PostgreSQL
+        engine = sqlmodel_create_engine(
+            settings.NEON_DB_URL,
+            # Connection pool settings optimized for serverless environments
+            poolclass=QueuePool,
+            pool_size=5,  # Number of connections to maintain in the pool
+            max_overflow=10,  # Additional connections beyond pool_size
+            pool_pre_ping=True,  # Verify connections before use
+            pool_recycle=300,  # Recycle connections after 5 minutes
+            echo=False,  # Set to True for SQL query logging (useful for debugging)
+            connect_args={
+                # Additional connection arguments specific to PostgreSQL
+                "connect_timeout": 10,  # Timeout for establishing connection
+            }
+        )
 
     logger.info("Database engine created successfully")
     return engine
@@ -50,6 +63,14 @@ def get_engine():
     return engine
 
 
+def create_tables():
+    """
+    Create all database tables based on the registered models.
+    """
+    from sqlmodel import SQLModel
+    SQLModel.metadata.create_all(engine)
+
+
 def ping_database():
     """
     Test the database connection by attempting to connect.
@@ -57,10 +78,11 @@ def ping_database():
     Returns:
         bool: True if connection is successful, False otherwise
     """
+    from sqlalchemy import text
     try:
         with engine.connect() as conn:
             # Execute a simple query to test the connection
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             return result.fetchone()[0] == 1
     except Exception as e:
         logger.error(f"Database ping failed: {str(e)}")
