@@ -2,7 +2,7 @@ import { User, LoginCredentials, RegisterCredentials } from '@/types/User';
 
 class AuthService {
   private user: User | null = null;
-  private apiUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002';
+  private apiUrl: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://mahmedmumair-phase3.hf.space';
 
   constructor() {
     // Check if user is already logged in from previous session

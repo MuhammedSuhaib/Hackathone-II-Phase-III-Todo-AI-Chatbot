@@ -1,7 +1,7 @@
 import { Task, TaskFormData } from '@/types/Task';
 import { ApiResponse, ErrorResponse } from '@/types/ApiResponse';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8002';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://mahmedmumair-phase3.hf.space';
 
 class ApiClient {
   private baseUrl: string;

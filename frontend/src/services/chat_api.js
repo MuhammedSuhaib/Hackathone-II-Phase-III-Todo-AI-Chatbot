@@ -5,7 +5,7 @@
 class ChatAPIService {
   constructor(baseURL) {
     // Use the environment variable for API base URL, fallback to /api if not set
-    this.baseURL = baseURL || process.env.NEXT_PUBLIC_API_BASE_URL + '/api' || 'http://localhost:8002/api';
+    this.baseURL = baseURL || process.env.NEXT_PUBLIC_API_BASE_URL + '/api' || 'https://mahmedmumair-phase3.hf.space/api';
   }
 
   /**
