@@ -9,45 +9,44 @@ import sys
 import subprocess
 import time
 from threading import Thread
-from src.utils.logging_config import get_logger
-
-# Configure logging
-logger = get_logger(__name__)
 
 # Set default environment variables for Hugging Face Space if not provided
 if not os.getenv("DATABASE_URL"):
-    # In a real deployment, you would use a persistent database service
-    # For demo purposes only, using a SQLite database
-    os.environ["DATABASE_URL"] = "sqlite:///./todo_app_hf.db"
-    logger.debug("Set DATABASE_URL to default SQLite database")
+    os.environ["DATABASE_URL"] = "postgresql://neondb_owner:npg_JDbCa6ELqGQ2@ep-withered-shape-a7bd9hif-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+if not os.getenv("NEON_DB_URL"):
+    os.environ["NEON_DB_URL"] = "postgresql://neondb_owner:npg_JDbCa6ELqGQ2@ep-withered-shape-a7bd9hif-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 if not os.getenv("SECRET_KEY"):
-    # Generate a random secret key for JWT tokens
-    import secrets
-    os.environ["SECRET_KEY"] = secrets.token_hex(32)
-    logger.debug("Generated random SECRET_KEY for JWT tokens")
+    os.environ["SECRET_KEY"] = "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"
 
 if not os.getenv("BETTER_AUTH_SECRET"):
-    os.environ["BETTER_AUTH_SECRET"] = "hf_space_demo_secret_change_in_production"
-    logger.debug("Set BETTER_AUTH_SECRET to default value")
+    os.environ["BETTER_AUTH_SECRET"] = "pohwuyqoVn683bmFDoVzmtQq50Zn3bFV"
+
+if not os.getenv("BETTER_AUTH_URL"):
+    os.environ["BETTER_AUTH_URL"] = "http://localhost:8000"
+
+if not os.getenv("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = "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"
+
+if not os.getenv("OPEN_ROUTER_API_KEY"):
+    os.environ["OPEN_ROUTER_API_KEY"] = "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"
 
 if not os.getenv("ALGORITHM"):
     os.environ["ALGORITHM"] = "HS256"
-    logger.debug("Set ALGORITHM to HS256")
 
 if not os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"):
     os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
-    logger.debug("Set ACCESS_TOKEN_EXPIRE_MINUTES to 30")
 
 if not os.getenv("ALLOWED_ORIGINS"):
     os.environ["ALLOWED_ORIGINS"] = '["*"]'
-    logger.debug("Set ALLOWED_ORIGINS to allow all origins")
 
-# Set the backend URL to work in Hugging Face environment
 if not os.getenv("BACKEND_URL"):
-    # For Hugging Face Space deployment
     os.environ["BACKEND_URL"] = "https://muhammedsuhaib-raheel.hf.space"
-    logger.debug("Set BACKEND_URL for Hugging Face Space deployment")
+
+# Late import to ensure environment variables are loaded before settings validation
+from src.utils.logging_config import get_logger
+logger = get_logger(__name__)
 
 def create_tables():
     """Create database tables."""
@@ -67,7 +66,6 @@ def start_server():
         import uvicorn
         from main import app
 
-        # Hugging Face Spaces typically use port 7860
         port = int(os.getenv("PORT", 7860))
         logger.info(f"Starting server on port {port}...")
 
@@ -84,11 +82,9 @@ def start_server():
 if __name__ == "__main__":
     logger.info("Initializing Todo API for Hugging Face Spaces...")
 
-    # Create tables
     if not create_tables():
         logger.error("Failed to create database tables. Exiting.")
         sys.exit(1)
 
-    # Start the server
     logger.info("Starting the server...")
     start_server()
