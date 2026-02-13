@@ -7,9 +7,11 @@ from ....services.user_service import UserService
 from ....database.session import get_session
 from ....auth.jwt_handler import create_access_token
 from ....config.settings import settings
+from ....utils.logging_config import get_logger
 
 router = APIRouter()
 security = HTTPBearer()
+logger = get_logger(__name__)
 
 @router.post("/register", response_model=UserResponse)
 def register_user(
@@ -26,10 +28,13 @@ def register_user(
     Returns:
         UserResponse: Created user data with JWT token
     """
+    logger.info(f"User registration attempt for email: {user_data.email}")
+
     try:
         # Check if user already exists
         existing_user = UserService.get_user_by_email(user_data.email, db)
         if existing_user:
+            logger.warning(f"Registration failed: User with email {user_data.email} already exists")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="User with this email already exists"
@@ -37,6 +42,7 @@ def register_user(
 
         # Create the user
         user = UserService.create_user(user_data, db)
+        logger.info(f"User created successfully with ID: {user.id}")
 
         # Create access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -44,8 +50,10 @@ def register_user(
         access_token = create_access_token(
             data=token_data, expires_delta=access_token_expires
         )
+        logger.debug(f"JWT token generated for user: {user.id}")
 
         # Return user data with token
+        logger.info(f"User registration completed successfully for: {user.email}")
         return UserResponse(
             id=user.id,
             email=user.email,
@@ -54,8 +62,10 @@ def register_user(
             token=access_token
         )
     except HTTPException:
+        logger.error(f"HTTP exception during registration for email: {user_data.email}")
         raise
     except Exception as e:
+        logger.error(f"Unexpected error during registration for email {user_data.email}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Registration failed: {str(e)}"
@@ -77,6 +87,8 @@ def login_user(
     Returns:
         UserResponse: User data with JWT token
     """
+    logger.info(f"Login attempt for email: {user_login.email}")
+
     try:
         # Authenticate user
         user = UserService.authenticate_user(
@@ -86,10 +98,13 @@ def login_user(
         )
 
         if not user:
+            logger.warning(f"Login failed: Invalid credentials for email: {user_login.email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password"
             )
+
+        logger.info(f"User authenticated successfully: {user.id}")
 
         # Create access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -97,8 +112,10 @@ def login_user(
         access_token = create_access_token(
             data=token_data, expires_delta=access_token_expires
         )
+        logger.debug(f"JWT token generated for user: {user.id}")
 
         # Return user data with token
+        logger.info(f"Login completed successfully for: {user.email}")
         return UserResponse(
             id=user.id,
             email=user.email,
@@ -107,8 +124,10 @@ def login_user(
             token=access_token
         )
     except HTTPException:
+        logger.error(f"HTTP exception during login for email: {user_login.email}")
         raise
     except Exception as e:
+        logger.error(f"Unexpected error during login for email {user_login.email}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Login failed: {str(e)}"
@@ -123,6 +142,7 @@ def logout_user():
     Returns:
         dict: Success message
     """
+    logger.info("User logout request received")
     return {"message": "Successfully logged out"}
 
 
@@ -141,6 +161,8 @@ def get_profile(
     Returns:
         UserResponse: Current user data
     """
+    logger.info("Profile access request")
+
     from ....auth.jwt_handler import verify_token
 
     token = credentials.credentials
@@ -148,17 +170,23 @@ def get_profile(
     user_id = payload.get("sub")
 
     if not user_id:
+        logger.error("Invalid token: Could not extract user ID from token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
         )
 
+    logger.debug(f"Token validated for user ID: {user_id}")
+
     user = UserService.get_user_by_id(user_id, db)
     if not user:
+        logger.error(f"User not found for ID: {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+
+    logger.info(f"Profile retrieved for user: {user.email}")
 
     # Create a new token for the response (though the user already has one)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

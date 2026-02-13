@@ -1,0 +1,32 @@
+spec_version: '1.0'
+name: Todo-API-Backend
+short_description: Secure multi-user todo management API
+long_description: A FastAPI-based todo management system with JWT authentication
+tags:
+  - fastapi
+  - python
+  - todo
+  - api
+  - authentication
+license: mit
+sdk: docker
+hardware:
+  cpu: S
+  memory: 16gb
+  accelerator: none
+secrets:
+  - key: DATABASE_URL
+    name: Database URL
+    default: sqlite:///./todo_app.db
+  - key: SECRET_KEY
+    name: Secret Key for JWT
+    default: changeme
+  - key: BETTER_AUTH_SECRET
+    name: Better Auth Secret
+    default: changeme
+  - key: OPENAI_API_KEY
+    name: OpenAI API Key
+    default: ""
+  - key: OPEN_ROUTER_API_KEY
+    name: Open Router API Key
+    default: ""

@@ -1,0 +1,53 @@
+name: Sync Backend to Hugging Face
+
+on:
+  push:
+    branches: [ main, master, ME ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/sync-backend-hf.yml'
+  workflow_dispatch:
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Upload to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.SYNC_HF_TOKEN }}
+          HF_REPO: ${{ secrets.SYNC_HF_SPACE_REPO }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          pip install huggingface_hub
+          python -c "
+          import os, shutil, tempfile
+          from huggingface_hub import HfApi
+          
+          api = HfApi()
+          with tempfile.TemporaryDirectory() as tmp:
+              # Copy contents of backend to temp root for HF compatibility
+              shutil.copytree('./backend', tmp, dirs_exist_ok=True)
+              
+              # Cleanup local artifacts
+              for pattern in ['.env*', '*.db', '__pycache__', '.venv']:
+                  import glob
+                  for match in glob.glob(os.path.join(tmp, '**', pattern), recursive=True):
+                      if os.path.isfile(match): os.remove(match)
+                      elif os.path.isdir(match): shutil.rmtree(match)
+              
+              api.upload_folder(
+                  folder_path=tmp,
+                  repo_id=os.environ['HF_REPO'],
+                  repo_type='space',
+                  token=os.environ['HF_TOKEN'],
+                  commit_message=f'Deploy from GitHub commit {os.environ.get(\"COMMIT_SHA\", \"\")[:7]}'
+              )
+          "

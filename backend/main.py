@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api.v1.endpoints import tasks
@@ -5,9 +6,15 @@ from src.api.v1.endpoints.auth import router as auth_router
 from src.api.chat_endpoint import router as chat_router
 from src.config.settings import settings
 from src.database.connection import create_tables
+from src.utils.logging_config import get_logger
+
+# Configure logging
+logger = get_logger(__name__)
 
 # Create tables on startup
+logger.info("Creating database tables on startup...")
 create_tables()
+logger.info("Database tables created successfully")
 
 # Create FastAPI app instance
 app = FastAPI(

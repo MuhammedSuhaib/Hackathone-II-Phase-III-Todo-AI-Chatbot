@@ -5,9 +5,11 @@ from ....models.task import TaskCreate, TaskRead, TaskUpdate
 from ....services.task_service import TaskService
 from ....auth.dependencies import get_current_user_id, validate_user_id_in_path
 from ....database.session import get_session
+from ....utils.logging_config import get_logger
 
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 @router.post("/users/{user_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)

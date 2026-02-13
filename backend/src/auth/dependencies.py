@@ -5,9 +5,11 @@ from typing import Generator
 from .jwt_handler import verify_token, get_current_user
 from ..database.session import get_session
 from ..models.task import Task
+from ..utils.logging_config import get_logger
 
 
 security = HTTPBearer()
+logger = get_logger(__name__)
 
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
@@ -23,16 +25,19 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     Raises:
         HTTPException: If token is invalid or missing
     """
+    logger.debug("Extracting user ID from JWT token")
     token = credentials.credentials
     payload = verify_token(token)
     user_id = payload.get("sub")
 
     if not user_id:
+        logger.error("Invalid token: Could not extract user ID from token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
         )
 
+    logger.debug(f"User ID extracted from token: {user_id}")
     return user_id
 
 
@@ -56,23 +61,29 @@ def verify_user_owns_task(
         HTTPException: If user doesn't own the task
     """
     if not task_id:
+        logger.debug("No task ID provided, skipping ownership verification")
         return True
+
+    logger.debug(f"Verifying task ownership: user_id={user_id}, task_id={task_id}")
 
     # Query the task by ID
     task = db.get(Task, task_id)
 
     if not task:
+        logger.warning(f"Task not found: {task_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found"
         )
 
     if task.user_id != user_id:
+        logger.warning(f"User {user_id} does not own task {task_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this task"
         )
 
+    logger.debug(f"Task ownership verified: user_id={user_id}, task_id={task_id}")
     return True
 
 
@@ -86,6 +97,8 @@ def get_user_tasks_query(user_id: str = Depends(get_current_user_id)):
     Returns:
         Callable: Function that returns a filtered query
     """
+    logger.debug(f"Getting tasks query for user: {user_id}")
+
     def _get_filtered_query(db: Session = Depends(get_session)):
         return db.query(Task).filter(Task.user_id == user_id)
 
@@ -106,19 +119,24 @@ def validate_user_id_in_path(request: Request, current_user_id: str = Depends(ge
     Raises:
         HTTPException: If user IDs don't match
     """
+    logger.debug(f"Validating user ID in path against token: token_user_id={current_user_id}")
+
     # Extract user_id from path
     path_user_id = request.path_params.get('user_id')
 
     if not path_user_id:
+        logger.error("User ID not found in request path")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User ID not found in path"
         )
 
     if path_user_id != current_user_id:
+        logger.warning(f"User ID mismatch: path={path_user_id}, token={current_user_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this user's data"
         )
 
+    logger.debug(f"User ID validation passed: {current_user_id}")
     return current_user_id

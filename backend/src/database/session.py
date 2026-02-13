@@ -2,10 +2,15 @@ from contextlib import contextmanager
 from sqlalchemy.orm import Session, sessionmaker
 from typing import Generator
 from .connection import engine
+from ..utils.logging_config import get_logger
 
+
+# Configure logging
+logger = get_logger(__name__)
 
 # Create a session factory bound to the engine
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+logger.debug("Database session factory created")
 
 
 def get_session() -> Generator[Session, None, None]:
@@ -15,10 +20,12 @@ def get_session() -> Generator[Session, None, None]:
     Yields:
         Session: SQLAlchemy database session
     """
+    logger.debug("Creating new database session for FastAPI endpoint")
     db = SessionLocal()
     try:
         yield db
     finally:
+        logger.debug("Closing database session for FastAPI endpoint")
         db.close()
 
 
@@ -30,10 +37,12 @@ def get_db_session():
     Yields:
         Session: SQLAlchemy database session
     """
+    logger.debug("Creating new database session via context manager")
     db = SessionLocal()
     try:
         yield db
     finally:
+        logger.debug("Closing database session via context manager")
         db.close()
 
 
@@ -44,6 +53,7 @@ def get_session_sync() -> Session:
     Returns:
         Session: SQLAlchemy database session (remember to close it manually)
     """
+    logger.debug("Creating synchronous database session")
     return SessionLocal()
 
 
@@ -54,6 +64,7 @@ def close_session(db: Session):
     Args:
         db (Session): SQLAlchemy database session to close
     """
+    logger.debug("Manually closing database session")
     db.close()
 
 
@@ -70,6 +81,9 @@ def run_db_operation(operation_func, *args, **kwargs):
     Returns:
         Result of the operation function
     """
+    logger.debug(f"Running database operation: {operation_func.__name__}")
     with get_db_session() as db:
         kwargs['db'] = db
-        return operation_func(*args, **kwargs)
+        result = operation_func(*args, **kwargs)
+        logger.debug(f"Database operation completed: {operation_func.__name__}")
+        return result

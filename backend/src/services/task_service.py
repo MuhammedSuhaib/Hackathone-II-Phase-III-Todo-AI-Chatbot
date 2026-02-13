@@ -4,12 +4,14 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from ..models.task import Task, TaskCreate, TaskUpdate, TaskRead
 from datetime import datetime
+from ..utils.logging_config import get_logger
 
 
 class TaskService:
     """
     Service class to handle business logic for Task operations.
     """
+    logger = get_logger(__name__)
 
     @staticmethod
     def create_task(task_data: TaskCreate, db: Session) -> TaskRead:
@@ -26,6 +28,9 @@ class TaskService:
         Raises:
             HTTPException: If there's an error creating the task
         """
+        TaskService.logger.info(f"Creating task for user: {task_data.user_id}")
+        TaskService.logger.debug(f"Task data: title='{task_data.title}', description='{task_data.description}', completed={task_data.completed}, priority={task_data.priority}")
+
         try:
             # Create a new task instance
             db_task = Task(
@@ -41,6 +46,8 @@ class TaskService:
             db.commit()
             db.refresh(db_task)
 
+            TaskService.logger.info(f"Task created successfully with ID: {db_task.id}")
+
             # Return the created task - extract values to avoid serialization issues
             return TaskRead(
                 id=db_task.id,
@@ -53,12 +60,14 @@ class TaskService:
                 updated_at=db_task.updated_at
             )
         except IntegrityError as e:
+            TaskService.logger.error(f"Integrity error creating task for user {task_data.user_id}: {str(e)}")
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error creating task"
             )
         except Exception as e:
+            TaskService.logger.error(f"Unexpected error creating task for user {task_data.user_id}: {str(e)}")
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -81,6 +90,8 @@ class TaskService:
         Raises:
             HTTPException: If task is not found or doesn't belong to user
         """
+        TaskService.logger.info(f"Retrieving task {task_id} for user: {user_id}")
+
         try:
             # Query for the task that belongs to the specific user
             db_task = db.query(Task).filter(
@@ -89,10 +100,13 @@ class TaskService:
             ).first()
 
             if not db_task:
+                TaskService.logger.warning(f"Task {task_id} not found for user: {user_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Task not found or does not belong to user"
                 )
+
+            TaskService.logger.info(f"Task {task_id} retrieved successfully for user: {user_id}")
 
             # Return the task data - extract values to avoid serialization issues
             return TaskRead(
@@ -109,6 +123,7 @@ class TaskService:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
+            TaskService.logger.error(f"Unexpected error retrieving task {task_id} for user {user_id}: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Unexpected error occurred: {str(e)}"
@@ -128,11 +143,15 @@ class TaskService:
         Returns:
             List[TaskRead]: List of user's tasks
         """
+        TaskService.logger.info(f"Retrieving tasks for user: {user_id}, skip: {skip}, limit: {limit}")
+
         try:
             # Query for tasks belonging to the specific user with pagination
             db_tasks = db.query(Task).filter(
                 Task.user_id == user_id
             ).offset(skip).limit(limit).all()
+
+            TaskService.logger.info(f"Retrieved {len(db_tasks)} tasks for user: {user_id}")
 
             # Convert to TaskRead schema - make sure to extract values before session closes
             tasks = []
@@ -152,8 +171,10 @@ class TaskService:
                 task = TaskRead(**task_dict)
                 tasks.append(task)
 
+            TaskService.logger.debug(f"Converted {len(tasks)} tasks to TaskRead schema")
             return tasks
         except Exception as e:
+            TaskService.logger.error(f"Unexpected error retrieving tasks for user {user_id}: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Unexpected error occurred: {str(e)}"
@@ -176,6 +197,9 @@ class TaskService:
         Raises:
             HTTPException: If task is not found or doesn't belong to user
         """
+        TaskService.logger.info(f"Updating task {task_id} for user: {user_id}")
+        TaskService.logger.debug(f"Update data: {task_update.model_dump(exclude_unset=True) if hasattr(task_update, 'model_dump') else task_update.dict(exclude_unset=True)}")
+
         try:
             # Query for the task that belongs to the specific user
             db_task = db.query(Task).filter(
@@ -184,6 +208,7 @@ class TaskService:
             ).first()
 
             if not db_task:
+                TaskService.logger.warning(f"Task {task_id} not found for user: {user_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Task not found or does not belong to user"
@@ -198,6 +223,8 @@ class TaskService:
             db.commit()
             db.refresh(db_task)
 
+            TaskService.logger.info(f"Task {task_id} updated successfully for user: {user_id}")
+
             # Return the updated task - extract values to avoid serialization issues
             return TaskRead(
                 id=db_task.id,
@@ -210,6 +237,7 @@ class TaskService:
                 updated_at=db_task.updated_at
             )
         except IntegrityError as e:
+            TaskService.logger.error(f"Integrity error updating task {task_id} for user {user_id}: {str(e)}")
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -219,6 +247,7 @@ class TaskService:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
+            TaskService.logger.error(f"Unexpected error updating task {task_id} for user {user_id}: {str(e)}")
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -241,6 +270,8 @@ class TaskService:
         Raises:
             HTTPException: If task is not found or doesn't belong to user
         """
+        TaskService.logger.info(f"Deleting task {task_id} for user: {user_id}")
+
         try:
             # Query for the task that belongs to the specific user
             db_task = db.query(Task).filter(
@@ -249,6 +280,7 @@ class TaskService:
             ).first()
 
             if not db_task:
+                TaskService.logger.warning(f"Task {task_id} not found for user: {user_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Task not found or does not belong to user"
@@ -258,11 +290,13 @@ class TaskService:
             db.delete(db_task)
             db.commit()
 
+            TaskService.logger.info(f"Task {task_id} deleted successfully for user: {user_id}")
             return True
         except HTTPException:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
+            TaskService.logger.error(f"Unexpected error deleting task {task_id} for user {user_id}: {str(e)}")
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -285,6 +319,8 @@ class TaskService:
         Raises:
             HTTPException: If task is not found or doesn't belong to user
         """
+        TaskService.logger.info(f"Toggling completion status for task {task_id} for user: {user_id}")
+
         try:
             # Query for the task that belongs to the specific user
             db_task = db.query(Task).filter(
@@ -293,13 +329,18 @@ class TaskService:
             ).first()
 
             if not db_task:
+                TaskService.logger.warning(f"Task {task_id} not found for user: {user_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Task not found or does not belong to user"
                 )
 
             # Toggle the completion status
+            old_status = db_task.completed
             db_task.completed = not db_task.completed
+            new_status = db_task.completed
+
+            TaskService.logger.info(f"Task {task_id} completion status changed from {old_status} to {new_status} for user: {user_id}")
 
             # Update the updated_at timestamp (handled by the Base model's __setattr__)
             from datetime import datetime
@@ -324,6 +365,7 @@ class TaskService:
             # Re-raise HTTP exceptions
             raise
         except Exception as e:
+            TaskService.logger.error(f"Unexpected error toggling completion for task {task_id} for user {user_id}: {str(e)}")
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

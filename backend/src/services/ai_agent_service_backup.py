@@ -24,7 +24,8 @@ class AIAgentService:
             self.client = None
 
         self.mcp_server = mcp_server
-        self.mcp_server_url = "http://localhost:8001"  # Default MCP server URL
+        # Hardcode the backend URL
+        self.mcp_server_url = "https://muhammedsuhaib-raheel.hf.space"
 
     def initialize_agent_with_tools(self):
         """

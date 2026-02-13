@@ -9,6 +9,7 @@ os.environ['BETTER_AUTH_SECRET'] = 'pohwuyqoVn683bmFDoVzmtQq50Zn3bFV'
 os.environ['SECRET_KEY'] = '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'
 os.environ['OPENAI_API_KEY'] = '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'
 os.environ['OPEN_ROUTER_API_KEY'] = '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'
+os.environ['BACKEND_URL'] = 'https://muhammedsuhaib-raheel.hf.space'
 
 print("Environment variables set.")
 
@@ -27,7 +28,7 @@ print("Starting the backend server...")
 try:
     import uvicorn
     from main import app
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
 except Exception as e:
     print(f"Error starting server: {e}")
     sys.exit(1)

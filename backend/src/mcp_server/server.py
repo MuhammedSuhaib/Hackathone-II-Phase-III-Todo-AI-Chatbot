@@ -11,10 +11,11 @@ from pydantic import BaseModel
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from starlette.middleware.cors import CORSMiddleware
+from ..utils.logging_config import get_logger
 
 
 # Global configuration
-MCP_SERVER_URL = "http://localhost:8001"  # Default URL for the MCP server
+MCP_SERVER_URL = "https://muhammedsuhaib-raheel.hf.space"  # Backend URL for the MCP server
 
 
 class ToolCall(BaseModel):
@@ -30,6 +31,9 @@ class ToolResult(BaseModel):
 
 class MCPServer:
     def __init__(self):
+        self.logger = get_logger(__name__)
+        self.logger.info("Initializing MCP Server for AI Chatbot Integration")
+
         self.app = FastAPI(title="MCP Server for AI Chatbot", version="1.0.0")
         self.tools = {}
 
@@ -47,35 +51,44 @@ class MCPServer:
     def _setup_routes(self):
         @self.app.get("/")
         async def root():
+            self.logger.info("MCP Server root endpoint accessed")
             return {"message": "MCP Server for AI Chatbot Integration"}
 
         @self.app.post("/execute")
         async def execute_tool(call: ToolCall):
             """Execute a registered tool with the provided arguments."""
+            self.logger.info(f"Executing tool: {call.name} with arguments: {call.arguments}")
+
             if call.name not in self.tools:
+                self.logger.error(f"Tool {call.name} not found")
                 raise HTTPException(status_code=404, detail=f"Tool {call.name} not found")
 
             try:
                 # Execute the tool function
                 result = await self.tools[call.name](**call.arguments)
+                self.logger.info(f"Tool {call.name} executed successfully")
                 return ToolResult(success=True, result=result)
             except Exception as e:
+                self.logger.error(f"Error executing tool {call.name}: {str(e)}")
                 return ToolResult(success=False, error=str(e))
 
         @self.app.get("/tools")
         async def list_tools():
             """Return a list of available tools."""
+            self.logger.info("Listing available tools")
             return {"tools": list(self.tools.keys())}
 
     def register_tool(self, name: str):
         """Register a function as an MCP tool. This is a decorator factory."""
         def decorator(func):
+            self.logger.info(f"Registering tool: {name}")
             self.tools[name] = func
             return func
         return decorator
 
     def start(self, host: str = "localhost", port: int = 8001):
         """Start the MCP server."""
+        self.logger.info(f"Starting MCP Server at {MCP_SERVER_URL}")
         print(f"Starting MCP Server at {MCP_SERVER_URL}")
         uvicorn.run(self.app, host=host, port=port)
 

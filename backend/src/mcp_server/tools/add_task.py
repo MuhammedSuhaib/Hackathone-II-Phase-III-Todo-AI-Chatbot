@@ -8,6 +8,10 @@ from ..server import mcp_server
 from sqlmodel import Session, select
 from ...models.task import Task, TaskCreate, PriorityEnum
 from contextlib import contextmanager
+from ...utils.logging_config import get_logger
+
+
+logger = get_logger(__name__)
 
 
 def get_valid_priority(priority: str) -> PriorityEnum:
@@ -35,6 +39,8 @@ async def add_task(user_id: str, title: str, description: str = "", priority: st
     Returns:
         Dictionary containing the created task information
     """
+    logger.info(f"Executing add_task tool for user: {user_id}, title: {title}")
+
     try:
         # Import database session here to avoid circular imports
         from sqlmodel import Session
@@ -44,6 +50,7 @@ async def add_task(user_id: str, title: str, description: str = "", priority: st
 
         # Validate inputs
         if not title.strip():
+            logger.warning("Task title cannot be empty")
             return {
                 "success": False,
                 "error": "Task title cannot be empty"
@@ -51,9 +58,12 @@ async def add_task(user_id: str, title: str, description: str = "", priority: st
 
         # Validate and convert priority
         validated_priority = get_valid_priority(priority)
+        logger.debug(f"Validated priority: {validated_priority}")
 
         # Create database session
         with Session(engine) as db_session:
+            logger.debug("Creating database session for add_task")
+
             # Create task using the TaskService
             task_create = TaskCreate(
                 user_id=user_id,
@@ -78,11 +88,13 @@ async def add_task(user_id: str, title: str, description: str = "", priority: st
                 "updated_at": created_task.updated_at.isoformat() if hasattr(created_task.updated_at, 'isoformat') else str(created_task.updated_at)
             }
 
+            logger.info(f"Task created successfully with ID: {created_task.id}")
             return {
                 "success": True,
                 "task": task_dict
             }
     except Exception as e:
+        logger.error(f"Failed to add task: {str(e)}")
         return {
             "success": False,
             "error": f"Failed to add task: {str(e)}"
@@ -104,9 +116,12 @@ def add_task_with_db_session(user_id: str, title: str, description: str = "", pr
     Returns:
         Dictionary containing the created task information
     """
+    logger.info(f"Executing add_task_with_db_session for user: {user_id}, title: {title}")
+
     try:
         # Validate inputs
         if not title.strip():
+            logger.warning("Task title cannot be empty")
             return {
                 "success": False,
                 "error": "Task title cannot be empty"
@@ -114,6 +129,7 @@ def add_task_with_db_session(user_id: str, title: str, description: str = "", pr
 
         # Validate and convert priority
         validated_priority = get_valid_priority(priority)
+        logger.debug(f"Validated priority: {validated_priority}")
 
         # Create the task object using the Task model from Phase II
         task_create = TaskCreate(
@@ -143,11 +159,13 @@ def add_task_with_db_session(user_id: str, title: str, description: str = "", pr
             "updated_at": getattr(task, 'updated_at', None)
         }
 
+        logger.info(f"Task created successfully with ID: {task.id}")
         return {
             "success": True,
             "task": task_dict
         }
     except Exception as e:
+        logger.error(f"Failed to add task: {str(e)}")
         return {
             "success": False,
             "error": f"Failed to add task: {str(e)}"
