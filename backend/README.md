@@ -1,3 +1,12 @@
+---
+title: Phase3
+emoji: ⚡
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # Todo API Backend
 
 This is a secure, multi-user todo management API built with FastAPI, SQLModel, and Neon Serverless PostgreSQL.
